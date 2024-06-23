@@ -1,241 +1,106 @@
-name: 'Build Optimized Rust Binary'
-description: 'Builds a min sized Rust binary or library. With self-built std, abort on panic, PGO and cross-compilation support.'
+name: 'Reloaded Publish Action'
+description: 'Publish artifacts from other GitHub Actions'
+author: 'Reloaded Project'
 branding:
-  icon: 'check'
+  icon: 'package'
   color: 'red'
 
 inputs:
-  rust-project-path:
-    description: 'Path to the Rust project'
+  nuget-api-key:
+    description: 'NuGet API key for publishing packages'
+    required: false
+  crates-io-token:
+    description: 'Crates.io token for publishing Rust packages'
+    required: false
+  rust-project-paths:
+    description: 'List of paths to Rust projects'
     required: false
     default: '.'
-  pgo-project-path:
-    description: 'Path to the Rust project used for gathering PGO data. Can be same or separate project.'
+  artifacts-directory:
+    description: 'Path to the directory containing the uncompressed artifacts'
     required: false
-    default: '.'
-  crate-name:
-    description: 'Name of the Rust crate (used to determine file name)'
-    required: true
-  target:
-    description: 'The target platform for the Rust compiler'
-    required: true
-  features:
-    description: 'Comma-separated list of features to include in the build'
+    default: 'artifacts'
+  compressed-artifacts-directory:
+    description: 'Path to the directory containing the compressed artifacts'
+    required: false
+    default: 'compressed-artifacts'
+  additional-publish-params:
+    description: 'Additional parameters for cargo publish (e.g., --dry-run)'
     required: false
     default: ''
-  no-default-features:
-    description: 'Do not include default features in the build'
+  create-release:
+    description: 'Whether the artifacts should by uploaded to GitHub releases.'
     required: false
-    default: false
-  use-pgo:
-    description: 'Use Profile-Guided Optimization [PGO] to build the artifact.'
+    default: 'true'
+  checkout-current-repo:
+    description: 'Checks out the current repository.'
     required: false
-    default: false
-  pgo-benchmark-name:
-    description: 'Benchmark name to use with PGO.'
-    required: false
-    default: 'my_benchmark'
-  use-cross:
-    description: 'Use cross-rs for building. If false, use cargo.'
-    required: false
-    default: false
-  additional-rustflags:
-    description: 'Additional RUSTFLAGS to pass to the Rust compiler'
-    required: false
-    default: ''
-  upload-artifacts:
-    description: 'Upload the built artifacts as a GitHub Actions artifact'
-    required: false
-    default: true
-  abort-on-panic:
-    description: 'Abort immediately on panic. If false, the default panic handler is used.'
-    required: false
-    default: true
-  build-library:
-    description: 'Build a library instead of a binary. Requires `crate-type = ["cdylib", "staticlib"]` in Cargo.toml.'
-    required: false
-    default: false
-  run-tests-and-coverage:
-    description: 'Run tests and coverage using the `devops-rust-test-and-coverage` action.'
-    required: false
-    default: false
-  upload-coverage-to-codecov:
-    description: 'Uploads coverage to codecov if `run-tests-and-coverage` is enabled.'
-    required: false
-    default: true
-  codecov-token:
-    description: 'Codecov token for uploading coverage'
-    required: false
+    default: 'true'
 
 runs:
   using: 'composite'
   steps:
-    - uses: actions-rust-lang/setup-rust-toolchain@v1
+    - name: Checkout repository
+      if: inputs.checkout-current-repo == 'true'
+      uses: actions/checkout@v4
       with:
-        matcher: false
-        cache: false
-        toolchain: nightly
+        submodules: recursive
 
-    - name: Setup Rust Caching
-      uses: Swatinem/rust-cache@v2
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
       with:
-        key: ${{ inputs.rust-project-path }}+${{ inputs.target }}
-        cache-on-failure: true
-        workspaces: |
-          ${{ inputs.rust-project-path }} -> target
+        path: ${{ inputs.artifacts-directory }}
 
-    - name: Install gcc-multilib (if on Ubuntu based System, and Target is not Host)
-      if: inputs.use-cross == 'false' && runner.os == 'Linux'
+    - name: Upload to NuGet
+      if: inputs.nuget-api-key != ''
+      shell: pwsh
+      run: |
+        $items = Get-ChildItem -Path "${{ inputs.artifacts-directory }}/**.nupkg" -Recurse
+        Foreach ($item in $items)
+        {
+            Write-Host "Pushing $item"
+            dotnet nuget push "$item" -k "${{ inputs.nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate
+        }
+
+        $items = Get-ChildItem -Path "${{ inputs.artifacts-directory }}/**.snupkg" -Recurse
+        Foreach ($item in $items)
+        {
+            Write-Host "Pushing Symbol Package $item"
+            dotnet nuget push "$item" -k "${{ inputs.nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate
+        }
+
+    - name: Compress artifacts
       shell: bash
       run: |
-        # Get host triple
-        HOST_TARGET=$(rustc -vV | sed -n 's|host: ||p')
-        echo "Host target: $HOST_TARGET"
-        echo "Target: ${{ inputs.target }}"
+        dir="${{ inputs.artifacts-directory }}"
+        compressed_dir="${{ inputs.compressed-artifacts-directory }}"
+        mkdir -p "$compressed_dir"
 
-        if [ "$HOST_TARGET" != "${{ inputs.target }}" ]; then
-          echo "Target is different from host. Installing gcc-multilib..."
-          sudo apt-get update || true
-          sudo apt-get install -y gcc-multilib || true
-        else
-          echo "Target is the same as host. Skipping gcc-multilib installation."
+        if [ ! -d "$dir" ]; then
+          echo "Directory $dir does not exist. No artifacts found."
+          exit 0
         fi
 
-    - name: Setup Rust Toolchain
-      shell: bash
-      working-directory: ${{ inputs.rust-project-path }}
-      run: |
-        rustup target add ${{ inputs.target }}
-        rustup component add rust-src --toolchain nightly
-        rustup toolchain install nightly-${{ inputs.target }} --force-non-host
-
-        # Install cross-rs if needed
-        if [ "${{ inputs.use-cross }}" == "true" ]; then
-          cargo install cross --git https://github.com/cross-rs/cross
-        fi
-
-    - name: Build Rust Project
-      shell: bash
-      run: |
-        # Setup build variables
-        BUILD_CMD="cargo"
-        if [ "${{ inputs.use-cross }}" == "true" ]; then
-          BUILD_CMD="cross"
-        fi
-    
-        BUILD_FEATURES_ARGS="${{ inputs.features }}"
-        NO_DEFAULT_FEATURES=""
-        if [ "${{ inputs.no-default-features }}" == "true" ]; then
-          NO_DEFAULT_FEATURES="--no-default-features"
-        fi
-    
-        CRATE_TYPES=""
-        if [ "${{ inputs.build-library }}" == "true" ]; then
-          CRATE_TYPES="--crate-type cdylib --crate-type staticlib"
-        fi
-    
-        export RUSTFLAGS="${{ inputs.additional-rustflags }} -Zlocation-detail=none -C lto=fat"
-        if [ "${{ inputs.abort-on-panic }}" == "true" ]; then
-          export RUSTFLAGS="$RUSTFLAGS -C panic=abort"
-          BUILD_STD_ARGS="-Z build-std=std,panic_abort -Z build-std-features=panic_immediate_abort"
-        else
-          BUILD_STD_ARGS="-Z build-std=std"
-        fi
-    
-        # Handle PGO
-        if [ "${{ inputs.use-pgo }}" == "true" ]; then
-          rustup component add llvm-tools-preview
-    
-          # Normalize pgo-project-path for PGO, because it doesn't handle double slashes
-          # (user error) well.
-          PGO_PROJECT_PATH="${{ inputs.pgo-project-path }}"
-          PGO_PROJECT_PATH="${PGO_PROJECT_PATH%/}"  # Remove trailing forward slash
-          PGO_PROJECT_PATH="${PGO_PROJECT_PATH%\\}" # Remove trailing backslash
-    
-          # Generate PGO profiling data
-          RUSTFLAGS_BACKUP="$RUSTFLAGS"
-          PGO_PROFILES_FOLDER="${GITHUB_WORKSPACE}/${PGO_PROJECT_PATH}/target/pgo-profiles"
-          export RUSTFLAGS="$RUSTFLAGS -Cprofile-generate=$PGO_PROFILES_FOLDER"
-    
-          cd "${GITHUB_WORKSPACE}/${PGO_PROJECT_PATH}"
-          echo "Flags: $RUSTFLAGS"
-          echo "$BUILD_CMD +nightly rustc --release $BUILD_STD_ARGS --target ${{ inputs.target }} $CRATE_TYPES --features \"$BUILD_FEATURES_ARGS,pgo\" $NO_DEFAULT_FEATURES"
-          $BUILD_CMD +nightly test --bench ${{ inputs.pgo-benchmark-name }} --release --target ${{ inputs.target }} --features "$BUILD_FEATURES_ARGS,pgo" $NO_DEFAULT_FEATURES
-    
-          # Check if .profraw files were created
-          echo "Profiles Folder: $PGO_PROFILES_FOLDER"
-          ls "$PGO_PROFILES_FOLDER"
-          if [ ! -f "$PGO_PROFILES_FOLDER/"*.profraw ]; then
-            echo "::error::No .profraw files were created during the PGO run. PGO data generation failed."
-            exit 1
+        for subdir in "$dir"/*; do
+          if [ -d "$subdir" ]; then
+            base=$(basename "$subdir")
+            zip -r "$compressed_dir/$base.zip" "$subdir"
           fi
-    
-          # Merge the PGO profiles
-          # This is tricky, llvm-profdata isn't in $PATH, so we need to find it ourselves.
-          target_libdir=$(rustc --print target-libdir)
-          bin_dir=$(dirname "$target_libdir")/bin
-          llvm_profdata_path=$(find "$bin_dir" -name "llvm-profdata*" | head -n 1)
-    
-          MERGED_PGO_PROFILE=$PGO_PROFILES_FOLDER/merged.profdata
-          $llvm_profdata_path merge -o "$MERGED_PGO_PROFILE" "$PGO_PROFILES_FOLDER"
-    
-          # Assert merged.profdata is not empty
-          echo "Merged Profiles Folder: $PGO_PROFILES_FOLDER"
-          ls "$PGO_PROFILES_FOLDER"
-          if [ ! -s "$MERGED_PGO_PROFILE" ]; then
-            # Note: RUSTFLAGS can't handle spaces, so we're kinda screwed if the path up to here
-            # has spaces in it.
-            echo "::error::merged.profdata is empty. PGO data generation failed."
-            exit 1
-          fi
-    
-          # Use the generated PGO profiling data to perform an optimized build
-          export RUSTFLAGS="$RUSTFLAGS_BACKUP -C llvm-args=-pgo-warn-missing-function -C profile-use=$MERGED_PGO_PROFILE"
-        fi
-    
-        # Build the final project
-        cd "${GITHUB_WORKSPACE}/${{ inputs.rust-project-path }}"
-        echo "Flags: $RUSTFLAGS"
-        echo "$BUILD_CMD +nightly rustc --release $BUILD_STD_ARGS --target ${{ inputs.target }} $CRATE_TYPES --features \"$BUILD_FEATURES_ARGS\" $NO_DEFAULT_FEATURES"
-        $BUILD_CMD +nightly rustc --release $BUILD_STD_ARGS --target ${{ inputs.target }} $CRATE_TYPES --features "$BUILD_FEATURES_ARGS" $NO_DEFAULT_FEATURES
-    
-        echo "PWD: $(pwd)"
-        echo "Build Dir: ${GITHUB_WORKSPACE}/${{ inputs.rust-project-path }}/target/${{ inputs.target }}/release"
-        ls "${GITHUB_WORKSPACE}/${{ inputs.rust-project-path }}/target/${{ inputs.target }}/release"
+        done
+        ls -A ./$compressed_dir
 
-    - name: Upload binary artifacts
-      if: inputs.upload-artifacts == 'true' && inputs.build-library != 'true'
-      uses: actions/upload-artifact@v4
+    - name: Create GitHub release
+      if: inputs.create-release == 'true'
+      uses: softprops/action-gh-release@v2
       with:
-        name: ${{ inputs.crate-name }}-${{ inputs.target }}-${{ inputs.features }}
-        path: |
-          ${{ inputs.rust-project-path }}/target/${{ inputs.target }}/release/${{ inputs.crate-name }}*
-          !${{ inputs.rust-project-path }}/target/${{ inputs.target }}/release/${{ inputs.crate-name }}*.d
-        
-    - name: Upload library artifacts
-      if: inputs.upload-artifacts == 'true' && inputs.build-library == 'true'
-      uses: actions/upload-artifact@v4
-      with:
-        name: C-Library-${{ inputs.target }}-${{ inputs.features }}
-        path: |
-          ${{ inputs.rust-project-path }}/target/${{ inputs.target }}/release/*.a
-          ${{ inputs.rust-project-path }}/target/${{ inputs.target }}/release/*.so
-          ${{ inputs.rust-project-path }}/target/${{ inputs.target }}/release/*.lib
-          ${{ inputs.rust-project-path }}/target/${{ inputs.target }}/release/*.dll
-          ${{ inputs.rust-project-path }}/target/${{ inputs.target }}/release/*.pdb
-          ${{ inputs.rust-project-path }}/target/${{ inputs.target }}/release/*.dylib
+        files: |
+          ${{ inputs.compressed-artifacts-directory }}/*
 
-    - name: Run Tests and Coverage
-      if: inputs.run-tests-and-coverage == 'true'
-      uses: Reloaded-Project/devops-rust-test-and-coverage@v1
-      with:
-        rust-project-path: ${{ inputs.rust-project-path }}
-        rust-toolchain: nightly
-        target: ${{ inputs.target }}
-        install-rust-toolchain: false
-        setup-rust-cache: false
-        upload-coverage: ${{ inputs.upload-coverage-to-codecov }}
-        codecov-token: ${{ inputs.codecov-token }}
-        features: ${{ inputs.features }}
-        no-default-features: ${{ inputs.no-default-features }}
-        use-cross: ${{ inputs.use-cross }}
+    - name: Publish to crates.io
+      if: inputs.crates-io-token != ''
+      shell: bash
+      run: |
+        while IFS= read -r path; do
+          echo "Publishing Rust package at path: $path"
+          cargo publish --token ${{ inputs.crates-io-token }} ${{ inputs.additional-publish-params }} --manifest-path "$path/Cargo.toml"
+        done <<< "${{ inputs.rust-project-paths }}"

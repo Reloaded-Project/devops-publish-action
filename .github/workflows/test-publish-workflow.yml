@@ -1,0 +1,76 @@
+name: Test Publish Action
+
+on:
+  push:
+    tags: [ 'v1', 'v1-test' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build_artifacts:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout prs-rs Repository
+      uses: actions/checkout@v4
+      with:
+        repository: Sewer56/prs-rs
+        ref: d08599ed5473616f57d57a0966939e1a5dbda9b4
+
+    - name: Build Rust C Library
+      uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+      with:
+        crate-name: prs-rs
+        target: x86_64-unknown-linux-gnu
+        use-pgo: false
+        use-cross: false
+        features: "c-exports"
+        build-library: true
+        upload-artifacts: true
+
+    - name: Build .NET Library
+      uses: Reloaded-Project/devops-rust-c-library-to-dotnet@v1
+      with:
+        csharp-project-path: bindings/csharp
+
+  test_publish_action:
+    needs: build_artifacts
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Checkout prs-rs Repository
+      uses: actions/checkout@v4
+      with:
+        repository: Sewer56/prs-rs
+        ref: d08599ed5473616f57d57a0966939e1a5dbda9b4
+
+    - name: Test Publish Action
+      uses: Reloaded-Project/devops-publish-action@v1-test
+      with:
+        crates-io-token: ${{ secrets.CRATES_IO_TOKEN }}
+        additional-publish-params: --dry-run
+        create-release: false
+        checkout-current-repo: false
+        artifacts-directory: 'artifacts'
+
+    - name: Verify NuGet packages
+      run: |
+        ls -A ./artifacts
+        nupkg_files=$(find artifacts -type f -name "*.nupkg")
+        snupkg_files=$(find artifacts -type f -name "*.snupkg")
+
+        if [ -n "$nupkg_files" ] && [ -n "$snupkg_files" ]; then
+          echo "Both nupkg and snupkg files found."
+        else
+          if [ -z "$nupkg_files" ]; then
+            echo "No nupkg file found."
+          fi
+          if [ -z "$snupkg_files" ]; then
+            echo "No snupkg file found."
+          fi
+          exit 1
+        fi
