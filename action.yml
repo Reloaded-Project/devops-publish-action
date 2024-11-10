@@ -100,7 +100,16 @@ runs:
       if: inputs.crates-io-token != ''
       shell: bash
       run: |
-        while IFS= read -r path; do
+        # Trim whitespace and handle empty lines
+        echo "${{ inputs.rust-project-paths }}" | while read -r path || [[ -n "$path" ]]; do
+          # Skip empty lines
+          if [[ -z "$path" ]]; then
+            continue
+          fi
+          
+          # Trim whitespace
+          path=$(echo "$path" | xargs)
+          
           echo "Publishing Rust package at path: $path"
-          cargo publish --token ${{ inputs.crates-io-token }} ${{ inputs.additional-publish-params }} --manifest-path "$path/Cargo.toml"
-        done <<< "${{ inputs.rust-project-paths }}"
+          cargo publish --token "${{ inputs.crates-io-token }}" ${{ inputs.additional-publish-params }} --manifest-path "$path/Cargo.toml"
+        done
