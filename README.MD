@@ -63,7 +63,7 @@ publish-crate:
 | -------------------------------- | ----------------------------------------------------------- | -------- | ---------------------- |
 | `nuget-api-key`                  | NuGet API key for publishing packages                       | No       |                        |
 | `crates-io-token`                | Crates.io token for publishing Rust packages                | No       |                        |
-| `rust-project-paths`             | List of paths to standalone Rust projects                   | No       | `.`                    |
+| `rust-project-paths`             | List of paths to standalone Rust projects                   | No       | ``                     |
 | `cargo-workspace-projects`       | List of specific projects to publish from a Cargo workspace | No       | `''`                   |
 | `artifacts-directory`            | Path to the directory containing the artifacts              | No       | `artifacts`            |
 | `compressed-artifacts-directory` | Path to the directory containing the zipped artifacts       | No       | `compressed-artifacts` |
