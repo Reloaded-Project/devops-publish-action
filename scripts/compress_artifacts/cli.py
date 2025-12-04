@@ -31,7 +31,7 @@ Examples:
       - c-library-linux-x64
       - c-library-windows-x64
     symbols:
-      pattern: "*-symbols"
+      patterns: "*-symbols"
   '
 '''
     )
@@ -52,7 +52,7 @@ Examples:
         '--groups', '-g',
         default='',
         help="YAML grouping configuration (inline or @filename). "
-             "Supports explicit directory lists or 'pattern:' for glob matching."
+             "Supports explicit directory lists or 'patterns:' for glob matching."
     )
     
     parser.add_argument(

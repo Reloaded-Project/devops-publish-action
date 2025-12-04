@@ -88,22 +88,29 @@ c-library:
   - c-library-windows-x64
   - c-library-macos-arm64
 
-# Pattern matching - use glob patterns
+# Pattern matching - single string syntax
 symbols:
-  pattern: "*.symbols"
+  patterns: "*.symbols"
 
-# Pattern with exclusions
+# Multiple patterns - list syntax
 binaries:
-  pattern: "*-x64"
-  exclude:
+  patterns:
+    - "*-x64"
+    - "*-arm64"
+  excludes:
     - "*.symbols"
+
+# Mixed - single pattern (string), single exclude (string)
+non-symbols:
+  patterns: "*"
+  excludes: "*.symbols"
 
 # Mixed mode - some grouped, others individual
 c-library:
   - c-library-linux-x64
   - c-library-windows-x64
 symbols:
-  pattern: "*.symbols"
+  patterns: "*.symbols"
 # Directories not matching any group remain as individual archives
 ```
 

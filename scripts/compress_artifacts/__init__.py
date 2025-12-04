@@ -9,7 +9,7 @@ Supports:
 """
 
 from .config import parse_artifact_groups
-from .grouping import match_directories, resolve_group_directories
+from .grouping import resolve_group_directories
 from .compression import (
     resolve_7z_binary,
     get_file_extension,
@@ -21,7 +21,6 @@ from .cli import create_parser, main
 
 __all__ = [
     'parse_artifact_groups',
-    'match_directories',
     'resolve_group_directories',
     'resolve_7z_binary',
     'get_file_extension',

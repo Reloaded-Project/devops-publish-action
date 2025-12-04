@@ -107,7 +107,7 @@ def run_compress_script(artifacts_dir: str, output_dir: str, groups: str = '',
         artifacts_dir: Path to directory containing artifact subdirectories.
         output_dir: Path to output directory for compressed archives.
         groups: YAML grouping configuration (inline string or @filename).
-                Supports explicit directory lists or 'pattern:' for glob matching.
+                Supports explicit directory lists or 'patterns:' for glob matching.
         tool: Compression tool - 'zip' (default), '7z', or any archiver command.
               For 7z, auto-detects '7z' or '7zz' binary.
         extra_args: Additional arguments for the compression tool.

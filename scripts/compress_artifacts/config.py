@@ -16,8 +16,11 @@ def parse_artifact_groups(yaml_str: str) -> dict:
     
     Supported formats:
     - Explicit list: group_name: [dir1, dir2, dir3]
-    - Pattern: group_name: {pattern: "glob-pattern"}
-    - Pattern with exclusion: group_name: {pattern: "glob-pattern", exclude: ["pattern1"]}
+    - Pattern matching: group_name: {patterns: "*.symbols"} or {patterns: ["p1", "p2"]}
+    - With exclusions: group_name: {patterns: ..., excludes: "*.symbols"} or {excludes: [...]}
+    
+    The 'patterns' and 'excludes' keys accept either a single string or a list of strings.
+    Directories matching ANY pattern in the list are included.
     
     Returns dict mapping group names to their config.
     """

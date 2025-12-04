@@ -37,3 +37,32 @@ Options:
 - `--tool`: `zip` (default) or `7z`
 - `--groups`: YAML config for grouping directories into single archives
 - `--args`: Extra arguments passed to the compression tool
+
+### Grouping Configuration
+
+Groups can be defined as explicit lists or using glob patterns:
+
+```yaml
+# Explicit list
+c-library: [c-library-linux, c-library-windows, c-library-macos]
+
+# Pattern matching - single string syntax
+symbols:
+  patterns: "*.symbols"
+
+# Multiple patterns (union - matches ANY) - list syntax
+binaries:
+  patterns:
+    - "*-x64"
+    - "*-arm64"
+  excludes:
+    - "*.symbols"
+
+# Mixed - single pattern (string), single exclude (string)
+non-symbols:
+  patterns: "*"
+  excludes: "*.symbols"
+```
+
+The `patterns` and `excludes` keys accept either a single string or a list of strings.
+Directories matching ANY pattern are included.
