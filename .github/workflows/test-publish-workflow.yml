@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout prs-rs Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: Sewer56/prs-rs
           ref: 039d687e737c40ab7f6deb2c2489a56e105e8082
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Action Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
