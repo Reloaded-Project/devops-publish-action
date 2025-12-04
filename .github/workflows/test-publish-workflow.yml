@@ -51,8 +51,8 @@ jobs:
       - name: Test Publish Action
         uses: ./
         with:
-          crates-io-token: ${{ secrets.CRATES_IO_TOKEN }}
-          additional-publish-params: --dry-run
+          rust-crates-io-token: ${{ secrets.CRATES_IO_TOKEN }}
+          rust-cargo-publish-params: --dry-run
           create-release: false
           checkout-current-repo: false
           artifacts-directory: "artifacts"

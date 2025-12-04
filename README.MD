@@ -43,41 +43,56 @@ publish-crate:
   - name: Publish artifacts
     uses: Reloaded-Project/devops-publish-action@v1
     with:
-      nuget-api-key: ${{ secrets.NUGET_KEY }}
-      crates-io-token: ${{ secrets.CRATES_IO_TOKEN }}
+      csharp-nuget-api-key: ${{ secrets.NUGET_KEY }}
+      rust-crates-io-token: ${{ secrets.CRATES_IO_TOKEN }}
       
       # For standalone Rust projects, specify paths to the project directories
-      rust-project-paths: |
+      rust-cargo-project-paths: |
         ./path/to/rust/project1
         ./path/to/rust/project2
         
-      # For Cargo workspace projects, specify the project names (not paths)
-      cargo-workspace-projects: |
-        project_name1
-        project_name2
+      # For Cargo workspace projects, specify the workspace root and crate names
+      rust-cargo-workspace-root: ./path/to/workspace
+      rust-cargo-workspace-crates: |
+        crate_name1
+        crate_name2
 ```
 
 ## Inputs
 
+### General Parameters
+
 | Input                            | Description                                                 | Required | Default                |
 | -------------------------------- | ----------------------------------------------------------- | -------- | ---------------------- |
-| `nuget-api-key`                  | NuGet API key for publishing packages                       | No       |                        |
-| `crates-io-token`                | Crates.io token for publishing Rust packages                | No       |                        |
-| `rust-project-paths`             | List of paths to standalone Rust projects                   | No       | ``                     |
-| `cargo-workspace-projects`       | List of specific projects to publish from a Cargo workspace | No       | `''`                   |
 | `artifacts-directory`            | Path to the directory containing the artifacts              | No       | `artifacts`            |
 | `compressed-artifacts-directory` | Path to the directory containing the zipped artifacts       | No       | `compressed-artifacts` |
-| `additional-publish-params`      | Additional parameters for cargo publish                     | No       | `''`                   |
 | `create-release`                 | Whether the artifacts should be uploaded to GitHub Releases | No       | `true`                 |
-| `checkout-current-repo`          | Checks out the current repository.                          | No       | `true`                 |
+| `checkout-current-repo`          | Checks out the current repository                           | No       | `true`                 |
+
+### [C#/NuGet](https://nuget.org) Parameters
+
+| Input                         | Description                                 | Required | Default |
+| ----------------------------- | ------------------------------------------- | -------- | ------- |
+| `csharp-nuget-api-key`        | NuGet API key for publishing packages       | No       |         |
+| `csharp-nuget-publish-params` | Additional parameters for dotnet nuget push | No       | `''`    |
+
+### [Rust/Cargo](https://crates.io) Parameters
+
+| Input                         | Description                                                 | Required | Default |
+| ----------------------------- | ----------------------------------------------------------- | -------- | ------- |
+| `rust-crates-io-token`        | Crates.io token for publishing Rust packages                | No       |         |
+| `rust-cargo-project-paths`    | List of paths to standalone Rust projects                   | No       | `''`    |
+| `rust-cargo-workspace-root`   | Root path of the Cargo workspace                            | No       | `.`     |
+| `rust-cargo-workspace-crates` | List of specific crates to publish from a Cargo workspace   | No       | `''`    |
+| `rust-cargo-publish-params`   | Additional parameters for cargo publish (e.g., `--dry-run`) | No       | `''`    |
 
 ## How this Action Works
 
 - Downloads all artifacts and re-uploads them to the GitHub Releases.
 - Uploads all NuGet packages stored in artifacts to `nuget.org`
 - Uploads specified Rust projects to `crates.io` using two different methods:
-  - **Standalone Projects**: Uses `--manifest-path` to publish projects at specific file paths (via `rust-project-paths`)
-  - **Workspace Projects**: Uses `-p` flag to publish specific projects within a workspace by name (via `cargo-workspace-projects`)
+  - **Standalone Projects**: Use `rust-cargo-project-paths` with full paths to individual project directories. Publishes using `--manifest-path`.
+  - **Workspace Projects**: Use `rust-cargo-workspace-root` + `rust-cargo-workspace-crates` to publish specific crates from a workspace by name. Publishes using `-p` flag.
 
 ## Why this Action Exists
 
