@@ -1,10 +1,11 @@
 name: Test Publish Action
 
 on:
-  push:
-    tags: ["v1", "v1-test"]
   pull_request:
-    branches: [main]
+    branches: [v2-master]
+  schedule:
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
 
 jobs:
   build_artifacts:
@@ -14,7 +15,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Sewer56/prs-rs
-          ref: d08599ed5473616f57d57a0966939e1a5dbda9b4
+          ref: 039d687e737c40ab7f6deb2c2489a56e105e8082
+          path: test-project
 
       - name: Build Rust C Library
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -26,29 +28,28 @@ jobs:
           features: "c-exports"
           build-library: true
           upload-artifacts: true
+          rust-project-path: test-project/src/prs-rs
+          workspace-path: test-project/src
 
       - name: Build .NET Library
         uses: Reloaded-Project/devops-rust-c-library-to-dotnet@v1
         with:
-          csharp-project-path: bindings/csharp
+          csharp-project-path: test-project/src/bindings/csharp
 
   test_publish_action:
     needs: build_artifacts
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Action Repository
+        uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Checkout prs-rs Repository
-        uses: actions/checkout@v4
-        with:
-          repository: Sewer56/prs-rs
-          ref: d08599ed5473616f57d57a0966939e1a5dbda9b4
-
       - name: Test Publish Action
-        uses: Reloaded-Project/devops-publish-action@v1-test
+        uses: ./
         with:
           crates-io-token: ${{ secrets.CRATES_IO_TOKEN }}
           additional-publish-params: --dry-run
