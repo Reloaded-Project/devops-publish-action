@@ -6,20 +6,9 @@ branding:
   color: 'red'
 
 inputs:
-  nuget-api-key:
-    description: 'NuGet API key for publishing packages'
-    required: false
-  crates-io-token:
-    description: 'Crates.io token for publishing Rust packages'
-    required: false
-  rust-project-paths:
-    description: 'List of paths to Rust projects (standalone projects)'
-    required: false
-    default: ''
-  cargo-workspace-projects:
-    description: 'List of specific projects to publish from a Cargo workspace (project names, not paths)'
-    required: false
-    default: ''
+  # ====================
+  # General Parameters
+  # ====================
   artifacts-directory:
     description: 'Path to the directory containing the uncompressed artifacts'
     required: false
@@ -28,10 +17,6 @@ inputs:
     description: 'Path to the directory containing the compressed artifacts'
     required: false
     default: 'compressed-artifacts'
-  additional-publish-params:
-    description: 'Additional parameters for cargo publish (e.g., --dry-run)'
-    required: false
-    default: ''
   create-release:
     description: 'Whether the artifacts should by uploaded to GitHub releases.'
     required: false
@@ -40,6 +25,40 @@ inputs:
     description: 'Checks out the current repository.'
     required: false
     default: 'true'
+
+  # ====================
+  # C#/NuGet Parameters
+  # ====================
+  csharp-nuget-api-key:
+    description: 'NuGet API key for publishing packages'
+    required: false
+  csharp-nuget-publish-params:
+    description: 'Additional parameters for dotnet nuget push'
+    required: false
+    default: ''
+
+  # ====================
+  # Rust/Cargo Parameters
+  # ====================
+  rust-crates-io-token:
+    description: 'Crates.io token for publishing Rust packages'
+    required: false
+  rust-cargo-project-paths:
+    description: 'List of paths to Rust projects (standalone projects)'
+    required: false
+    default: ''
+  rust-cargo-workspace-root:
+    description: 'Root path of the Cargo workspace'
+    required: false
+    default: '.'
+  rust-cargo-workspace-crates:
+    description: 'List of specific crates to publish from a Cargo workspace (crate names, not paths)'
+    required: false
+    default: ''
+  rust-cargo-publish-params:
+    description: 'Additional parameters for cargo publish (e.g., --dry-run)'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -56,21 +75,21 @@ runs:
         path: ${{ inputs.artifacts-directory }}
 
     - name: Upload to NuGet
-      if: inputs.nuget-api-key != ''
+      if: inputs.csharp-nuget-api-key != ''
       shell: pwsh
       run: |
         $items = Get-ChildItem -Path "${{ inputs.artifacts-directory }}/**.nupkg" -Recurse
         Foreach ($item in $items)
         {
             Write-Host "Pushing $item"
-            dotnet nuget push "$item" -k "${{ inputs.nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate
+            dotnet nuget push "$item" -k "${{ inputs.csharp-nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate ${{ inputs.csharp-nuget-publish-params }}
         }
 
         $items = Get-ChildItem -Path "${{ inputs.artifacts-directory }}/**.snupkg" -Recurse
         Foreach ($item in $items)
         {
             Write-Host "Pushing Symbol Package $item"
-            dotnet nuget push "$item" -k "${{ inputs.nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate
+            dotnet nuget push "$item" -k "${{ inputs.csharp-nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate ${{ inputs.csharp-nuget-publish-params }}
         }
 
     - name: Compress artifacts
@@ -101,11 +120,11 @@ runs:
           ${{ inputs.compressed-artifacts-directory }}/*
 
     - name: Publish standalone Rust projects to crates.io
-      if: inputs.crates-io-token != '' && inputs.rust-project-paths != ''
+      if: inputs.rust-crates-io-token != '' && inputs.rust-cargo-project-paths != ''
       shell: bash
       run: |
         # Trim whitespace and handle empty lines
-        echo "${{ inputs.rust-project-paths }}" | while read -r path || [[ -n "$path" ]]; do
+        echo "${{ inputs.rust-cargo-project-paths }}" | while read -r path || [[ -n "$path" ]]; do
           # Skip empty lines
           if [[ -z "$path" ]]; then
             continue
@@ -115,23 +134,23 @@ runs:
           path=$(echo "$path" | xargs)
           
           echo "Publishing standalone Rust package at path: $path"
-          cargo publish --token "${{ inputs.crates-io-token }}" ${{ inputs.additional-publish-params }} --manifest-path "$path/Cargo.toml"
+          cargo publish --token "${{ inputs.rust-crates-io-token }}" --manifest-path "$path/Cargo.toml" ${{ inputs.rust-cargo-publish-params }}
         done
 
-    - name: Publish Cargo workspace projects to crates.io
-      if: inputs.crates-io-token != '' && inputs.cargo-workspace-projects != ''
+    - name: Publish Cargo workspace crates to crates.io
+      if: inputs.rust-crates-io-token != '' && inputs.rust-cargo-workspace-crates != ''
       shell: bash
       run: |
         # Trim whitespace and handle empty lines
-        echo "${{ inputs.cargo-workspace-projects }}" | while read -r project || [[ -n "$project" ]]; do
+        echo "${{ inputs.rust-cargo-workspace-crates }}" | while read -r crate || [[ -n "$crate" ]]; do
           # Skip empty lines
-          if [[ -z "$project" ]]; then
+          if [[ -z "$crate" ]]; then
             continue
           fi
           
           # Trim whitespace
-          project=$(echo "$project" | xargs)
+          crate=$(echo "$crate" | xargs)
           
-          echo "Publishing workspace project: $project"
-          cargo publish --token "${{ inputs.crates-io-token }}" ${{ inputs.additional-publish-params }} -p "$project"
+          echo "Publishing workspace crate: $crate"
+          cargo publish --token "${{ inputs.rust-crates-io-token }}" --manifest-path "${{ inputs.rust-cargo-workspace-root }}/Cargo.toml" -p "$crate" ${{ inputs.rust-cargo-publish-params }}
         done
