@@ -21,6 +21,7 @@
             pkgs.zip
             pkgs.unzip
             pkgs._7zz
+            (pkgs.python3.withPackages (ps: [ps.pyyaml]))
           ];
         };
       }

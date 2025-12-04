@@ -69,6 +69,44 @@ publish-crate:
 | `create-release`                 | Whether the artifacts should be uploaded to GitHub Releases | No       | `true`                 |
 | `checkout-current-repo`          | Checks out the current repository                           | No       | `true`                 |
 
+### Compression Parameters
+
+| Input              | Description                                                      | Required | Default |
+| ------------------ | ---------------------------------------------------------------- | -------- | ------- |
+| `artifact-groups`  | YAML configuration for grouping artifact directories into single archives | No       | `''`    |
+| `compression-tool` | Compression tool to use (zip, 7z)                                | No       | `zip`   |
+| `compression-args` | Additional arguments for the compression tool                    | No       | `''`    |
+
+#### Artifact Groups Examples
+
+The `artifact-groups` input accepts YAML configuration to control how artifact directories are grouped into archives:
+
+```yaml
+# Explicit list - name specific directories to group
+c-library:
+  - c-library-linux-x64
+  - c-library-windows-x64
+  - c-library-macos-arm64
+
+# Pattern matching - use glob patterns
+symbols:
+  pattern: "*.symbols"
+
+# Pattern with exclusions
+binaries:
+  pattern: "*-x64"
+  exclude:
+    - "*.symbols"
+
+# Mixed mode - some grouped, others individual
+c-library:
+  - c-library-linux-x64
+  - c-library-windows-x64
+symbols:
+  pattern: "*.symbols"
+# Directories not matching any group remain as individual archives
+```
+
 ### [C#/NuGet](https://nuget.org) Parameters
 
 | Input                         | Description                                 | Required | Default |
