@@ -5,7 +5,10 @@ Artifact grouping logic - matching directories against patterns.
 import fnmatch
 import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
+
+# Type alias for renames config
+RenamesConfig = List[Dict[str, str]]
 
 
 def matches_any_pattern(name: str, patterns: List[str]) -> bool:
@@ -55,22 +58,23 @@ def match_directories_multi(base_dir: Path, patterns: list, excludes: Optional[l
     return sorted(matches)
 
 
-def resolve_group_directories(base_dir: Path, group_config) -> Tuple[List[str], List[str]]:
+def resolve_group_directories(base_dir: Path, group_config) -> Tuple[List[str], List[str], RenamesConfig]:
     """
-    Resolve a group configuration to a list of directory names and flattens patterns.
+    Resolve a group configuration to a list of directory names, flattens patterns, and renames config.
     
     Args:
         base_dir: Directory containing artifact subdirectories
         group_config: Either a list of dir names, or a dict with 'patterns', 'excludes',
-                      and 'flattens'. The 'patterns', 'excludes', and 'flattens' keys 
-                      accept either a string or list.
+                      'flattens', and 'renames'. The 'patterns', 'excludes', and 'flattens'
+                      keys accept either a string or list. The 'renames' key accepts a list
+                      of single-key dicts: [{"search": "replace"}, ...]
     
     Returns:
-        Tuple of (directory names list, flattens patterns list)
+        Tuple of (directory names list, flattens patterns list, renames config list)
     """
     if isinstance(group_config, list):
-        # Explicit list of directories - flattens not supported
-        return ([d for d in group_config if (base_dir / d).is_dir()], [])
+        # Explicit list of directories - flattens/renames not supported
+        return ([d for d in group_config if (base_dir / d).is_dir()], [], [])
     
     if isinstance(group_config, dict):
         # Get patterns - handle both string and list (inline normalization)
@@ -100,8 +104,17 @@ def resolve_group_directories(base_dir: Path, group_config) -> Tuple[List[str], 
         else:
             flattens = list(flattens_raw)
         
+        # Get renames - list of single-key dicts: [{"search": "replace"}, ...]
+        renames_raw = group_config.get('renames')
+        if renames_raw is None:
+            renames: RenamesConfig = []
+        elif isinstance(renames_raw, list):
+            renames = renames_raw
+        else:
+            renames = []  # Invalid format, ignore
+        
         dir_names = match_directories_multi(base_dir, patterns, excludes)
-        return (dir_names, flattens)
+        return (dir_names, flattens, renames)
     
     print(f"Warning: Invalid group config type: {type(group_config).__name__}", file=sys.stderr)
-    return ([], [])
+    return ([], [], [])

@@ -128,12 +128,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     
     # Process groups first
     for group_name, group_config in groups.items():
-        dir_names, flattens_patterns = resolve_group_directories(artifacts_dir, group_config)
+        dir_names, flattens_patterns, renames_config = resolve_group_directories(artifacts_dir, group_config)
         if dir_names:
-            if flattens_patterns:
+            if flattens_patterns or renames_config:
                 # Transform path: staging -> compress staged
                 staging_path, staging_handle = prepare_group_staging(
-                    artifacts_dir, group_name, dir_names, flattens_patterns
+                    artifacts_dir, group_name, dir_names, flattens_patterns, renames_config
                 )
                 try:
                     archive = compress_grouped(

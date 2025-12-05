@@ -110,14 +110,30 @@ headers:
     - "*-bindings_c.h"
     - "*-bindings_cpp.hpp"
 
+# Rename directories (search/replace on top-level dir names)
+c-library:
+  patterns: "C-Library-*"
+  renames:
+    - "C-Library-prs-rs-": ""  # Remove prefix
+
+# Combined with flattens (renames apply after flattens)
+binaries:
+  patterns: "C-Library-*"
+  flattens: "C-Library-linux-*"
+  renames:
+    - "C-Library-": ""
+
 # Directories not matching any group remain as individual archives
 ```
 
 Notes:
 - The `flattens` option places files from matched directories directly at the archive root
+- The `renames` option applies search/replace transformations to top-level directory names
+- Renames are applied after flattens, in list order
+- `renames` uses list-of-dicts syntax: `- "search": "replace"`
 - `patterns`, `excludes`, and `flattens` accept either a single string or a list
-- `flattens` is only available with dict syntax (not explicit list syntax)
-- If flattening would cause file conflicts, the script fails with an error listing all conflicts
+- `flattens` and `renames` are only available with dict syntax (not explicit list syntax)
+- If flattening or renaming would cause conflicts, the script fails with an error listing all conflicts
 
 ### [C#/NuGet](https://nuget.org) Parameters
 
