@@ -51,29 +51,12 @@ Options:
 
 ### Grouping Configuration
 
-Groups can be defined as explicit lists or using glob patterns:
+Groups can be defined as explicit lists or using glob patterns with `patterns` and `excludes` keys.
 
-```yaml
-# Explicit list
-c-library: [c-library-linux, c-library-windows, c-library-macos]
+See [Artifact Groups Examples](../README.MD#artifact-groups-examples) in the main README for full documentation.
 
-# Pattern matching - single string syntax
-symbols:
-  patterns: "*.symbols"
+### Flattening Directories
 
-# Multiple patterns (union - matches ANY) - list syntax
-binaries:
-  patterns:
-    - "*-x64"
-    - "*-arm64"
-  excludes:
-    - "*.symbols"
+The `flattens` option places files from matched directories directly at the archive root instead of preserving directory structure.
 
-# Mixed - single pattern (string), single exclude (string)
-non-symbols:
-  patterns: "*"
-  excludes: "*.symbols"
-```
-
-The `patterns` and `excludes` keys accept either a single string or a list of strings.
-Directories matching ANY pattern are included.
+See [Artifact Groups Examples](../README.MD#artifact-groups-examples) in the main README for full documentation.
