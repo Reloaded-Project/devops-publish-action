@@ -81,6 +81,8 @@ publish-crate:
 
 The `artifact-groups` input accepts YAML configuration to control how artifact directories are grouped into archives:
 
+**Syntax styles example:**
+
 ```yaml
 # Explicit list - name specific directories to group
 c-library:
@@ -104,7 +106,11 @@ binaries:
 non-symbols:
   patterns: "*"
   excludes: "*.symbols"
+```
 
+**Mixed mode example:**
+
+```yaml
 # Mixed mode - some grouped, others individual
 c-library:
   - c-library-linux-x64
