@@ -111,7 +111,7 @@ runs:
     - name: Install Python dependencies
       if: inputs.artifact-groups != ''
       shell: bash
-      run: pip install -r "${{ github.action_path }}/scripts/requirements.txt"
+      run: python3 -m pip install -r "${{ github.action_path }}/scripts/requirements.txt"
 
     - name: Compress artifacts
       shell: bash
