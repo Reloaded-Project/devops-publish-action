@@ -19,7 +19,8 @@ def prepare_group_staging(
     src_dir: Path,
     group_name: str,
     dir_names: List[str],
-    flattens_patterns: Optional[List[str]] = None
+    flattens_patterns: Optional[List[str]] = None,
+    renames_config: Optional[List[Dict[str, str]]] = None
 ) -> Tuple[Path, tempfile.TemporaryDirectory]:
     """
     Prepare a staging directory with transformed files ready for compression.
@@ -33,6 +34,8 @@ def prepare_group_staging(
         group_name: Name of the group (for error messages)
         dir_names: List of directory names to include
         flattens_patterns: Optional list of glob patterns for directories to flatten
+        renames_config: Optional list of single-key dicts [{"search": "replace"}, ...]
+                        for renaming top-level directories
     
     Returns:
         Tuple of (staging_path, temp_handle). The staging_path is ready for compression.
@@ -49,8 +52,8 @@ def prepare_group_staging(
         src_dir, staging, dir_names, flattens_patterns or []
     )
     
-    # === TRANSFORMATION 2: Rename (future placeholder) ===
-    # apply_rename_transformation(staging, renames_config)
+    # === TRANSFORMATION 2: Rename ===
+    _apply_rename_transform(staging, renames_config or [], group_name)
     
     # Detect and report conflicts
     _detect_conflicts(dest_paths, group_name)
@@ -112,6 +115,67 @@ def _apply_flatten_transform(
                 shutil.copy2(src_file, dest_file)
     
     return dest_paths
+
+
+def _apply_rename_transform(
+    staging: Path,
+    renames_config: List[Dict[str, str]],
+    group_name: str = ""
+) -> None:
+    """
+    Apply rename transformation to top-level directories in staging.
+    
+    Renames are applied in list order. Each rename is a dict with one key-value
+    pair where key=search string, value=replacement string. All occurrences of
+    the search string in directory names are replaced.
+    
+    Args:
+        staging: Staging directory containing artifacts
+        renames_config: List of single-key dicts [{"search": "replace"}, ...]
+        group_name: Name of the group (for error messages)
+    
+    Raises:
+        SystemExit: If renames would cause directory name conflicts
+    """
+    if not renames_config:
+        return
+    
+    # Get current top-level directories
+    top_level_dirs = [d for d in staging.iterdir() if d.is_dir()]
+    
+    # Compute all new names first to detect conflicts
+    renames_to_apply: List[Tuple[Path, str]] = []
+    new_names: Dict[str, List[str]] = {}  # new_name -> [original_names]
+    
+    for dir_path in top_level_dirs:
+        new_name = dir_path.name
+        
+        # Apply each rename rule in order
+        for rename_rule in renames_config:
+            for search, replace in rename_rule.items():
+                new_name = new_name.replace(search, replace)
+        
+        renames_to_apply.append((dir_path, new_name))
+        
+        # Track for conflict detection
+        if new_name not in new_names:
+            new_names[new_name] = []
+        new_names[new_name].append(dir_path.name)
+    
+    # Check for conflicts (multiple dirs renamed to same name)
+    conflicts = [(name, sources) for name, sources in new_names.items() if len(sources) > 1]
+    if conflicts:
+        print(f"Error: Directory name conflicts after rename in group '{group_name}':", file=sys.stderr)
+        for conflict_name, sources in conflicts:
+            sources_str = ', '.join(sources)
+            print(f"  - '{conflict_name}' would be produced by: {sources_str}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Apply renames
+    for dir_path, new_name in renames_to_apply:
+        if new_name != dir_path.name:
+            new_path = staging / new_name
+            dir_path.rename(new_path)
 
 
 def _detect_conflicts(dest_paths: Dict[Path, List[str]], group_name: str) -> None:
