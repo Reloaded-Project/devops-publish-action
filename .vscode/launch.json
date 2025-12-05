@@ -1,0 +1,30 @@
+{
+    // See scripts/README.MD for debugging setup instructions
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": ["${workspaceFolder}/scripts/tests", "-v"],
+            "cwd": "${workspaceFolder}/scripts",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Compress Artifacts (Example)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/compress-artifacts.py",
+            "args": [
+                "--artifacts-dir", "${workspaceFolder}/.github/workflows/test-data/rust/symbols-bundled-simple",
+                "--output-dir", "${workspaceFolder}/test-output",
+                "--tool", "zip"
+            ],
+            "cwd": "${workspaceFolder}",
+            "python": "${command:python.interpreterPath}",
+            "console": "integratedTerminal"
+        }
+    ]
+}

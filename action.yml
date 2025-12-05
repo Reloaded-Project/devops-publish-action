@@ -27,6 +27,22 @@ inputs:
     default: 'true'
 
   # ====================
+  # Compression Parameters
+  # ====================
+  artifact-groups:
+    description: 'YAML configuration for grouping artifact directories into single archives'
+    required: false
+    default: ''
+  compression-tool:
+    description: 'Compression tool to use (zip, 7z)'
+    required: false
+    default: 'zip'
+  compression-args:
+    description: 'Additional arguments for the compression tool'
+    required: false
+    default: ''
+
+  # ====================
   # C#/NuGet Parameters
   # ====================
   csharp-nuget-api-key:
@@ -92,25 +108,20 @@ runs:
             dotnet nuget push "$item" -k "${{ inputs.csharp-nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate ${{ inputs.csharp-nuget-publish-params }}
         }
 
+    - name: Install Python dependencies
+      if: inputs.artifact-groups != ''
+      shell: bash
+      run: python3 -m pip install -r "${{ github.action_path }}/scripts/requirements.txt"
+
     - name: Compress artifacts
       shell: bash
       run: |
-        dir="${{ inputs.artifacts-directory }}"
-        compressed_dir="${{ inputs.compressed-artifacts-directory }}"
-        mkdir -p "$compressed_dir"
-
-        if [ ! -d "$dir" ]; then
-          echo "Directory $dir does not exist. No artifacts found."
-          exit 0
-        fi
-
-        for subdir in "$dir"/*; do
-          if [ -d "$subdir" ]; then
-            base=$(basename "$subdir")
-            zip -r "$compressed_dir/$base.zip" "$subdir"
-          fi
-        done
-        ls -A ./$compressed_dir
+        python3 "${{ github.action_path }}/scripts/compress-artifacts.py" \
+          --artifacts-dir "${{ inputs.artifacts-directory }}" \
+          --output-dir "${{ inputs.compressed-artifacts-directory }}" \
+          --tool "${{ inputs.compression-tool }}" \
+          --args "${{ inputs.compression-args }}" \
+          --groups "${{ inputs.artifact-groups }}"
 
     - name: Create GitHub release
       if: inputs.create-release == 'true'
