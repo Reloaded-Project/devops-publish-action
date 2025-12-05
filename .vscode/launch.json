@@ -1,4 +1,5 @@
 {
+    // See scripts/README.MD for debugging setup instructions
     "version": "0.2.0",
     "configurations": [
         {
@@ -8,7 +9,7 @@
             "module": "pytest",
             "args": ["${workspaceFolder}/scripts/tests", "-v"],
             "cwd": "${workspaceFolder}/scripts",
-            "python": "${workspaceFolder}/scripts/.venv/bin/python",
+            "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal"
         },
         {
@@ -22,7 +23,7 @@
                 "--tool", "zip"
             ],
             "cwd": "${workspaceFolder}",
-            "python": "${workspaceFolder}/scripts/.venv/bin/python",
+            "python": "${command:python.interpreterPath}",
             "console": "integratedTerminal"
         }
     ]

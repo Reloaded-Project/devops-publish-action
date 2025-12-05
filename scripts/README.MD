@@ -9,17 +9,28 @@ Python scripts for artifact compression in the Reloaded Publish Action.
 python scripts/run-tests.py
 ```
 
-## Manual Setup (for VSCode debugging)
+## Debugging with VS Code
 
-```bash
-# Create venv once
-python scripts/setup-venv.py
+### Setup
 
-# Run tests without venv wrapper
-python scripts/run-tests.py --no-venv
-```
+1. Create the virtual environment:
+   ```bash
+   python scripts/setup-venv.py
+   ```
 
-After running `setup-venv.py`, configure VSCode to use `scripts/.venv/bin/python` as the interpreter.
+2. Select the interpreter in VS Code:
+   - Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS)
+   - Type "Python: Select Interpreter"
+   - Choose `scripts/.venv/bin/python` (or `scripts/.venv/Scripts/python.exe` on Windows)
+
+### Debug Configurations
+
+Two launch configurations are provided in `.vscode/launch.json`:
+
+- **Run Tests**: Runs the pytest test suite with verbose output. Set breakpoints in test files or source code to debug.
+- **Compress Artifacts (Example)**: Runs the compression script against sample test data. Modify the `args` array to test different scenarios.
+
+To debug: set breakpoints in the code, then press `F5` or use the Run and Debug panel to select a configuration.
 
 ## Compression Script
 
