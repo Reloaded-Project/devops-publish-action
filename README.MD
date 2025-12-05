@@ -41,7 +41,7 @@ publish-crate:
   - uses: actions/checkout@v4
 
   - name: Publish artifacts
-    uses: Reloaded-Project/devops-publish-action@v1
+    uses: Reloaded-Project/devops-publish-action@v3
     with:
       csharp-nuget-api-key: ${{ secrets.NUGET_KEY }}
       rust-crates-io-token: ${{ secrets.CRATES_IO_TOKEN }}
