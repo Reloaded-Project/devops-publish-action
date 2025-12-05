@@ -7,7 +7,28 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
+
+
+# Default compression arguments for maximum compression
+DEFAULT_COMPRESSION_ARGS = {
+    '7z': '-mx=9',
+    '7zz': '-mx=9',
+    'zip': '-9',
+}
+
+
+def get_default_args(tool: str) -> str:
+    """
+    Get default compression arguments for a tool.
+    
+    Args:
+        tool: Compression tool name (zip, 7z, 7zz)
+    
+    Returns:
+        Default arguments string for maximum compression, or empty string
+    """
+    return DEFAULT_COMPRESSION_ARGS.get(tool, '')
 
 
 def resolve_7z_binary() -> str:
@@ -45,7 +66,7 @@ def get_compression_command(tool: str, args: str, archive_path: str, sources: li
     
     Args:
         tool: Compression tool name (zip, 7z, 7zz)
-        args: Additional arguments as a string
+        args: Additional arguments as a string (if empty, uses max compression defaults)
         archive_path: Output archive path
         sources: List of source paths to compress
         cwd: Working directory for relative paths (unused but kept for API compatibility)
@@ -53,25 +74,28 @@ def get_compression_command(tool: str, args: str, archive_path: str, sources: li
     Returns:
         Command as a list of strings
     """
+    # Use default args if none specified
+    effective_args = args if args else get_default_args(tool)
+    
     if tool == 'zip':
         cmd = ['zip', '-r']
-        if args:
-            cmd.extend(shlex.split(args))
+        if effective_args:
+            cmd.extend(shlex.split(effective_args))
         cmd.append(archive_path)
         cmd.extend(sources)
     elif tool in ('7z', '7zz'):
         # Resolve the actual binary to use
         actual_binary = resolve_7z_binary()
         cmd = [actual_binary, 'a']
-        if args:
-            cmd.extend(shlex.split(args))
+        if effective_args:
+            cmd.extend(shlex.split(effective_args))
         cmd.append(archive_path)
         cmd.extend(sources)
     else:
         # Generic fallback: tool archive sources...
         cmd = [tool]
-        if args:
-            cmd.extend(shlex.split(args))
+        if effective_args:
+            cmd.extend(shlex.split(effective_args))
         cmd.append(archive_path)
         cmd.extend(sources)
     
@@ -119,32 +143,44 @@ def compress_ungrouped(src_dir: Path, dest_dir: Path, dir_name: str, tool: str, 
     return archive_path
 
 
-def compress_grouped(src_dir: Path, dest_dir: Path, group_name: str, dir_names: list, tool: str, args: str) -> Optional[Path]:
+def compress_grouped(src_dir: Path, dest_dir: Path, group_name: str,
+                     tool: str, args: str,
+                     dir_names: Optional[List[str]] = None) -> Optional[Path]:
     """
-    Compress multiple directories into a single archive, preserving subdirectory structure.
+    Compress directories into a grouped archive.
     
     Args:
-        src_dir: Parent directory containing the artifacts
-        dest_dir: Output directory for the archive
-        group_name: Name for the output archive
-        dir_names: List of directory names to include
-        tool: Compression tool
-        args: Additional compression arguments
+        src_dir: Source directory (staging dir or artifacts dir)
+        dest_dir: Output directory for archive
+        group_name: Name for the archive
+        tool: Compression tool (zip, 7z, etc.)
+        args: Extra compression arguments
+        dir_names: If provided, compress these specific subdirs.
+                   If None, compress all contents of src_dir.
     
     Returns:
         Path to the created archive, or None if compression failed
     """
-    if not dir_names:
-        print(f"Warning: No directories for group {group_name}, skipping", file=sys.stderr)
-        return None
+    if dir_names is not None:
+        # Compress specific subdirs
+        if not dir_names:
+            print(f"Warning: No directories for group {group_name}, skipping", file=sys.stderr)
+            return None
+        sources = dir_names
+        log_msg = f"Compressing group {group_name} ({len(dir_names)} dirs) -> "
+    else:
+        # Compress all contents of src_dir
+        sources = [item.name for item in src_dir.iterdir()]
+        if not sources:
+            print(f"Warning: Staging directory empty for group {group_name}, skipping", file=sys.stderr)
+            return None
+        log_msg = f"Compressing group {group_name} -> "
     
     ext = get_file_extension(tool)
     archive_path = dest_dir / f"{group_name}{ext}"
     
-    # Run compression from the src_dir so subdirectory names are preserved
-    cmd = get_compression_command(tool, args, str(archive_path.absolute()), dir_names)
-    
-    print(f"Compressing group {group_name} ({len(dir_names)} dirs) -> {archive_path.name}")
+    cmd = get_compression_command(tool, args, str(archive_path.absolute()), sources)
+    print(f"{log_msg}{archive_path.name}")
     result = subprocess.run(cmd, cwd=str(src_dir), capture_output=True, text=True)
     
     if result.returncode != 0:

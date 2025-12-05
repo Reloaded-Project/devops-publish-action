@@ -10,6 +10,7 @@ from typing import List, Optional
 from .config import parse_artifact_groups
 from .grouping import resolve_group_directories
 from .compression import compress_ungrouped, compress_grouped
+from .transforms import prepare_group_staging
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -127,12 +128,26 @@ def main(argv: Optional[List[str]] = None) -> int:
     
     # Process groups first
     for group_name, group_config in groups.items():
-        dir_names = resolve_group_directories(artifacts_dir, group_config)
+        dir_names, flattens_patterns = resolve_group_directories(artifacts_dir, group_config)
         if dir_names:
-            archive = compress_grouped(
-                artifacts_dir, output_dir, group_name, dir_names,
-                args.tool, args.args
-            )
+            if flattens_patterns:
+                # Transform path: staging -> compress staged
+                staging_path, staging_handle = prepare_group_staging(
+                    artifacts_dir, group_name, dir_names, flattens_patterns
+                )
+                try:
+                    archive = compress_grouped(
+                        staging_path, output_dir, group_name,
+                        args.tool, args.args
+                    )
+                finally:
+                    staging_handle.cleanup()
+            else:
+                # Direct path: compress original dirs (no staging needed)
+                archive = compress_grouped(
+                    artifacts_dir, output_dir, group_name,
+                    args.tool, args.args, dir_names=dir_names
+                )
             if archive:
                 grouped_dirs.update(dir_names)
     

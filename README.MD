@@ -81,8 +81,6 @@ publish-crate:
 
 The `artifact-groups` input accepts YAML configuration to control how artifact directories are grouped into archives:
 
-**Syntax styles example:**
-
 ```yaml
 # Explicit list - name specific directories to group
 c-library:
@@ -90,35 +88,36 @@ c-library:
   - c-library-windows-x64
   - c-library-macos-arm64
 
-# Pattern matching - single string syntax
-symbols:
-  patterns: "*.symbols"
-
-# Multiple patterns - list syntax
-binaries:
-  patterns:
-    - "*-x64"
-    - "*-arm64"
-  excludes:
-    - "*.symbols"
-
-# Mixed - single pattern (string), single exclude (string)
+# Pattern matching (single string) with excludes (single string)
 non-symbols:
   patterns: "*"
   excludes: "*.symbols"
-```
 
-**Mixed mode example:**
+# Multiple patterns and excludes (list)
+binaries:
+  patterns:
+    - "linux-*"
+    - "windows-*"
+    - "macos-*"
+  excludes:
+    - "*-test"
+    - "*-debug"
 
-```yaml
-# Mixed mode - some grouped, others individual
-c-library:
-  - c-library-linux-x64
-  - c-library-windows-x64
-symbols:
-  patterns: "*.symbols"
+# Multiple flatten patterns (list)
+headers:
+  patterns: "C-Headers-*"
+  flattens:
+    - "*-bindings_c.h"
+    - "*-bindings_cpp.hpp"
+
 # Directories not matching any group remain as individual archives
 ```
+
+Notes:
+- The `flattens` option places files from matched directories directly at the archive root
+- `patterns`, `excludes`, and `flattens` accept either a single string or a list
+- `flattens` is only available with dict syntax (not explicit list syntax)
+- If flattening would cause file conflicts, the script fails with an error listing all conflicts
 
 ### [C#/NuGet](https://nuget.org) Parameters
 

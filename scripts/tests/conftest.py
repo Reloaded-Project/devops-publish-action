@@ -99,7 +99,8 @@ def verify_no_nested_parent(archive_path: Path, forbidden_prefix: str) -> bool:
 
 
 def run_compress_script(artifacts_dir: str, output_dir: str, groups: str = '', 
-                        tool: str = 'zip', extra_args: str = '') -> bool:
+                        tool: str = 'zip', extra_args: str = '',
+                        expect_failure: bool = False) -> bool:
     """
     Run the compression script with the given arguments.
     
@@ -112,9 +113,10 @@ def run_compress_script(artifacts_dir: str, output_dir: str, groups: str = '',
               For 7z, auto-detects '7z' or '7zz' binary.
         extra_args: Additional arguments for the compression tool.
                     Examples: '-mx=9' for 7z max compression, '-9' for zip.
+        expect_failure: If True, expect the script to fail (for conflict tests).
     
     Returns:
-        True if script succeeded, False otherwise.
+        True if script succeeded (or failed when expected), False otherwise.
     """
     cmd = [
         sys.executable, str(SCRIPT_PATH),
@@ -128,6 +130,15 @@ def run_compress_script(artifacts_dir: str, output_dir: str, groups: str = '',
         cmd.extend(['--args', extra_args])
     
     result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    if expect_failure:
+        if result.returncode != 0:
+            print(f"Script failed as expected")
+            print(f"stderr: {result.stderr}")
+            return True
+        print(f"Script succeeded but expected failure")
+        return False
+    
     if result.returncode != 0:
         print(f"Script failed with return code {result.returncode}")
         print(f"stdout: {result.stdout}")
@@ -135,3 +146,64 @@ def run_compress_script(artifacts_dir: str, output_dir: str, groups: str = '',
         return False
     print(result.stdout)
     return True
+
+
+def get_script_stderr(artifacts_dir: str, output_dir: str, groups: str = '', 
+                      tool: str = 'zip', extra_args: str = '') -> str:
+    """
+    Run the compression script and return stderr output.
+    
+    Useful for checking error messages in conflict detection tests.
+    """
+    cmd = [
+        sys.executable, str(SCRIPT_PATH),
+        '--artifacts-dir', artifacts_dir,
+        '--output-dir', output_dir,
+        '--tool', tool,
+    ]
+    if groups:
+        cmd.extend(['--groups', groups])
+    if extra_args:
+        cmd.extend(['--args', extra_args])
+    
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return result.stderr
+
+
+def create_temp_artifacts(temp_dir: Path, structure: dict) -> Path:
+    """
+    Create temporary artifact directories with known structure.
+    
+    Args:
+        temp_dir: Base temp directory
+        structure: Dict mapping dir_name -> {filename: content}
+                   Supports nested dicts for subdirectories
+    
+    Returns:
+        Path to the artifacts directory
+    
+    Example:
+        create_temp_artifacts(tmp, {
+            'dir-a': {'file.txt': 'content a'},
+            'dir-b': {'file.txt': 'content b', 'subdir': {'nested.txt': 'nested'}}
+        })
+    """
+    artifacts_dir = temp_dir / 'artifacts'
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    
+    def create_contents(base_path: Path, contents: dict):
+        for name, value in contents.items():
+            path = base_path / name
+            if isinstance(value, dict):
+                path.mkdir(parents=True, exist_ok=True)
+                create_contents(path, value)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(value)
+    
+    for dir_name, contents in structure.items():
+        dir_path = artifacts_dir / dir_name
+        dir_path.mkdir(parents=True, exist_ok=True)
+        create_contents(dir_path, contents)
+    
+    return artifacts_dir
