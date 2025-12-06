@@ -20,6 +20,7 @@ Releases, NuGet, and crates.io.
 - 🚀 Upload artifacts to GitHub Releases
 - 📦 Publish NuGet packages to nuget.org
 - 🦀 Publish Rust packages to crates.io
+- 📝 Generate changelogs via [devops-changelog](https://github.com/Reloaded-Project/devops-changelog)
 - 🔍 Automatically detect and upload the appropriate artifacts
 
 ## Usage
@@ -155,9 +156,64 @@ Notes:
 | `rust-cargo-workspace-crates` | List of specific crates to publish from a Cargo workspace   | No       | `''`    |
 | `rust-cargo-publish-params`   | Additional parameters for cargo publish (e.g., `--dry-run`) | No       | `''`    |
 
+### Changelog Parameters
+
+For detailed documentation on changelog options, see [devops-changelog](https://github.com/Reloaded-Project/devops-changelog).
+
+#### Control Inputs
+
+| Input                          | Description                              | Required | Default     |
+| ------------------------------ | ---------------------------------------- | -------- | ----------- |
+| `changelog-enabled`            | Enable changelog generation              | No       | `false`     |
+| `changelog-include-in-release` | Include changelog file in release assets | No       | `false`     |
+| `changelog-upload-artifact`    | Upload changelog as GitHub artifact      | No       | `false`     |
+| `changelog-artifact-name`      | Name for the changelog artifact          | No       | `Changelog` |
+
+#### Auto-changelog Options
+
+| Input                                 | Description                                                                    | Required | Default        |
+| ------------------------------------- | ------------------------------------------------------------------------------ | -------- | -------------- |
+| `changelog-output`                    | Output file path                                                               | No       | `CHANGELOG.md` |
+| `changelog-config`                    | Path to auto-changelog config file                                             | No       | `''`           |
+| `changelog-template`                  | Template to use [compact, keepachangelog, json]                                | No       | `compact`      |
+| `changelog-remote`                    | Git remote for links                                                           | No       | `''`           |
+| `changelog-package`                   | Use version from file as latest release                                        | No       | `''`           |
+| `changelog-latest-version`            | Use specified version as latest release                                        | No       | `''`           |
+| `changelog-unreleased`                | Include unreleased changes section                                             | No       | `false`        |
+| `changelog-commit-limit`              | Number of commits to display per release                                       | No       | `''`           |
+| `changelog-backfill-limit`            | Number of commits to backfill empty releases                                   | No       | `''`           |
+| `changelog-commit-url`                | Override commit URL, use {id} for commit id                                    | No       | `''`           |
+| `changelog-issue-url`                 | Override issue URL, use {id} for issue id                                      | No       | `''`           |
+| `changelog-merge-url`                 | Override merge URL, use {id} for merge id                                      | No       | `''`           |
+| `changelog-compare-url`               | Override compare URL, use {from} and {to} for tags                             | No       | `''`           |
+| `changelog-issue-pattern`             | Override regex pattern for issues in commit messages                           | No       | `''`           |
+| `changelog-breaking-pattern`          | Regex pattern for breaking change commits                                      | No       | `''`           |
+| `changelog-merge-pattern`             | Add custom regex pattern for merge commits                                     | No       | `''`           |
+| `changelog-commit-pattern`            | Pattern to include when parsing commits                                        | No       | `''`           |
+| `changelog-ignore-commit-pattern`     | Pattern to ignore when parsing commits                                         | No       | `''`           |
+| `changelog-tag-pattern`               | Override regex pattern for version tags                                        | No       | `''`           |
+| `changelog-tag-prefix`                | Prefix used in version tags                                                    | No       | `''`           |
+| `changelog-starting-version`          | Specify earliest version to include in changelog                               | No       | `''`           |
+| `changelog-starting-date`             | Specify earliest date to include in changelog                                  | No       | `''`           |
+| `changelog-ending-version`            | Specify latest version to include in changelog                                 | No       | `''`           |
+| `changelog-sort-commits`              | Sort commits by property [relevance, date, date-desc, subject, subject-desc]   | No       | `relevance`    |
+| `changelog-release-summary`           | Display tagged commit message body as release summary                          | No       | `false`        |
+| `changelog-unreleased-only`           | Only output unreleased changes                                                 | No       | `false`        |
+| `changelog-hide-empty-releases`       | Hide empty releases                                                            | No       | `false`        |
+| `changelog-hide-credit`               | Hide auto-changelog credit                                                     | No       | `false`        |
+| `changelog-handlebars-setup`          | Handlebars setup file                                                          | No       | `''`           |
+| `changelog-append-git-log`            | String to append to git log command                                            | No       | `''`           |
+| `changelog-append-git-tag`            | String to append to git tag command                                            | No       | `''`           |
+| `changelog-prepend`                   | Prepend changelog to output file                                               | No       | `false`        |
+| `changelog-stdout`                    | Output changelog to stdout                                                     | No       | `false`        |
+| `changelog-is-release`                | Whether this is a GitHub Release                                               | No       | `false`        |
+| `changelog-release-tag`               | Tag associated with the GitHub Release                                         | No       | `''`           |
+| `changelog-override-starting-version` | Override the starting version with the release tag if this is a GitHub Release | No       | `false`        |
+
 ## How this Action Works
 
 - Downloads all artifacts and re-uploads them to the GitHub Releases.
+- Optionally generates a changelog using the [devops-changelog](https://github.com/Reloaded-Project/devops-changelog) action and uses it as the release body.
 - Uploads all NuGet packages stored in artifacts to `nuget.org`
 - Uploads specified Rust projects to `crates.io` using two different methods:
   - **Standalone Projects**: Use `rust-cargo-project-paths` with full paths to individual project directories. Publishes using `--manifest-path`.
