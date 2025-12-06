@@ -243,12 +243,19 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Checkout repository
-      if: inputs.checkout-current-repo == 'true'
+    - name: Checkout repository (shallow)
+      if: inputs.checkout-current-repo == 'true' && inputs.changelog-enabled != 'true'
       uses: actions/checkout@v6
       with:
         submodules: recursive
-        fetch-depth: ${{ inputs.changelog-enabled == 'true' && 0 || 1 }}
+        fetch-depth: 1
+
+    - name: Checkout repository (full history)
+      if: inputs.checkout-current-repo == 'true' && inputs.changelog-enabled == 'true'
+      uses: actions/checkout@v6
+      with:
+        submodules: recursive
+        fetch-depth: 0
 
     - name: Download artifacts
       uses: actions/download-artifact@v6
