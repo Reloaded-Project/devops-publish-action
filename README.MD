@@ -129,12 +129,13 @@ binaries:
 ```
 
 Notes:
+- Directories not matching any group are compressed as individual archives
+- A directory can be included in multiple groups - each group independently matches directories, so overlapping patterns will result in the same directory appearing in multiple archives
+- `patterns`, `excludes`, and `flattens` accept either a single string or a list
 - The `flattens` option places files from matched directories directly at the archive root
 - The `renames` option applies search/replace transformations to top-level directory names
 - Renames are applied after flattens, in list order
 - `renames` uses list-of-dicts syntax: `- "search": "replace"`
-- `patterns`, `excludes`, and `flattens` accept either a single string or a list
-- `flattens` and `renames` are only available with dict syntax (not explicit list syntax)
 - If flattening or renaming would cause conflicts, the script fails with an error listing all conflicts
 
 ### [C#/NuGet](https://nuget.org) Parameters
