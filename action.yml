@@ -90,24 +90,6 @@ runs:
       with:
         path: ${{ inputs.artifacts-directory }}
 
-    - name: Upload to NuGet
-      if: inputs.csharp-nuget-api-key != ''
-      shell: pwsh
-      run: |
-        $items = Get-ChildItem -Path "${{ inputs.artifacts-directory }}/**.nupkg" -Recurse
-        Foreach ($item in $items)
-        {
-            Write-Host "Pushing $item"
-            dotnet nuget push "$item" -k "${{ inputs.csharp-nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate ${{ inputs.csharp-nuget-publish-params }}
-        }
-
-        $items = Get-ChildItem -Path "${{ inputs.artifacts-directory }}/**.snupkg" -Recurse
-        Foreach ($item in $items)
-        {
-            Write-Host "Pushing Symbol Package $item"
-            dotnet nuget push "$item" -k "${{ inputs.csharp-nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate ${{ inputs.csharp-nuget-publish-params }}
-        }
-
     - name: Install Python dependencies
       if: inputs.artifact-groups-file != ''
       shell: bash
@@ -129,6 +111,24 @@ runs:
       with:
         files: |
           ${{ inputs.compressed-artifacts-directory }}/*
+
+    - name: Upload to NuGet
+      if: inputs.csharp-nuget-api-key != ''
+      shell: pwsh
+      run: |
+        $items = Get-ChildItem -Path "${{ inputs.artifacts-directory }}/**.nupkg" -Recurse
+        Foreach ($item in $items)
+        {
+            Write-Host "Pushing $item"
+            dotnet nuget push "$item" -k "${{ inputs.csharp-nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate ${{ inputs.csharp-nuget-publish-params }}
+        }
+
+        $items = Get-ChildItem -Path "${{ inputs.artifacts-directory }}/**.snupkg" -Recurse
+        Foreach ($item in $items)
+        {
+            Write-Host "Pushing Symbol Package $item"
+            dotnet nuget push "$item" -k "${{ inputs.csharp-nuget-api-key }}" -s "https://api.nuget.org/v3/index.json" --skip-duplicate ${{ inputs.csharp-nuget-publish-params }}
+        }
 
     - name: Publish standalone Rust projects to crates.io
       if: inputs.rust-crates-io-token != '' && inputs.rust-cargo-project-paths != ''
