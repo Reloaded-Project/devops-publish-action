@@ -76,6 +76,170 @@ inputs:
     required: false
     default: ''
 
+  # ====================
+  # Changelog Parameters
+  # ====================
+  changelog-enabled:
+    description: 'Enable changelog generation'
+    required: false
+    default: 'false'
+  changelog-include-in-release:
+    description: 'Include changelog file in release assets'
+    required: false
+    default: 'false'
+  changelog-upload-artifact:
+    description: 'Upload changelog as GitHub artifact'
+    required: false
+    default: 'false'
+  changelog-artifact-name:
+    description: 'Name for the changelog artifact'
+    required: false
+    default: 'Changelog'
+  changelog-output:
+    description: 'Output file path'
+    required: false
+    default: 'CHANGELOG.md'
+  changelog-config:
+    description: 'Path to auto-changelog config file'
+    required: false
+    default: ''
+  changelog-template:
+    description: 'Template to use [compact, keepachangelog, json]'
+    required: false
+    default: 'compact'
+  changelog-remote:
+    description: 'Git remote for links'
+    required: false
+    default: ''
+  changelog-package:
+    description: 'Use version from file as latest release'
+    required: false
+    default: ''
+  changelog-latest-version:
+    description: 'Use specified version as latest release'
+    required: false
+    default: ''
+  changelog-unreleased:
+    description: 'Include unreleased changes section'
+    required: false
+    default: 'false'
+  changelog-commit-limit:
+    description: 'Number of commits to display per release'
+    required: false
+    default: ''
+  changelog-backfill-limit:
+    description: 'Number of commits to backfill empty releases'
+    required: false
+    default: ''
+  changelog-commit-url:
+    description: 'Override commit URL, use {id} for commit id'
+    required: false
+    default: ''
+  changelog-issue-url:
+    description: 'Override issue URL, use {id} for issue id'
+    required: false
+    default: ''
+  changelog-merge-url:
+    description: 'Override merge URL, use {id} for merge id'
+    required: false
+    default: ''
+  changelog-compare-url:
+    description: 'Override compare URL, use {from} and {to} for tags'
+    required: false
+    default: ''
+  changelog-issue-pattern:
+    description: 'Override regex pattern for issues in commit messages'
+    required: false
+    default: ''
+  changelog-breaking-pattern:
+    description: 'Regex pattern for breaking change commits'
+    required: false
+    default: ''
+  changelog-merge-pattern:
+    description: 'Add custom regex pattern for merge commits'
+    required: false
+    default: ''
+  changelog-commit-pattern:
+    description: 'Pattern to include when parsing commits'
+    required: false
+    default: ''
+  changelog-ignore-commit-pattern:
+    description: 'Pattern to ignore when parsing commits'
+    required: false
+    default: ''
+  changelog-tag-pattern:
+    description: 'Override regex pattern for version tags'
+    required: false
+    default: ''
+  changelog-tag-prefix:
+    description: 'Prefix used in version tags'
+    required: false
+    default: ''
+  changelog-starting-version:
+    description: 'Specify earliest version to include in changelog'
+    required: false
+    default: ''
+  changelog-starting-date:
+    description: 'Specify earliest date to include in changelog'
+    required: false
+    default: ''
+  changelog-ending-version:
+    description: 'Specify latest version to include in changelog'
+    required: false
+    default: ''
+  changelog-sort-commits:
+    description: 'Sort commits by property [relevance, date, date-desc, subject, subject-desc]'
+    required: false
+    default: 'relevance'
+  changelog-release-summary:
+    description: 'Display tagged commit message body as release summary'
+    required: false
+    default: 'false'
+  changelog-unreleased-only:
+    description: 'Only output unreleased changes'
+    required: false
+    default: 'false'
+  changelog-hide-empty-releases:
+    description: 'Hide empty releases'
+    required: false
+    default: 'false'
+  changelog-hide-credit:
+    description: 'Hide auto-changelog credit'
+    required: false
+    default: 'false'
+  changelog-handlebars-setup:
+    description: 'Handlebars setup file'
+    required: false
+    default: ''
+  changelog-append-git-log:
+    description: 'String to append to git log command'
+    required: false
+    default: ''
+  changelog-append-git-tag:
+    description: 'String to append to git tag command'
+    required: false
+    default: ''
+  changelog-prepend:
+    description: 'Prepend changelog to output file'
+    required: false
+    default: 'false'
+  changelog-stdout:
+    description: 'Output changelog to stdout'
+    required: false
+    default: 'false'
+  changelog-is-release:
+    description: 'Whether this is a GitHub Release'
+    required: false
+    default: 'false'
+  changelog-release-tag:
+    description: 'Tag associated with the GitHub Release'
+    required: false
+    default: ''
+  changelog-override-starting-version:
+    description: 'Override the starting version with the release tag if this is a GitHub Release'
+    required: false
+    default: 'false'
+
 runs:
   using: 'composite'
   steps:
@@ -84,11 +248,63 @@ runs:
       uses: actions/checkout@v6
       with:
         submodules: recursive
+        fetch-depth: ${{ inputs.changelog-enabled == 'true' && 0 || 1 }}
 
     - name: Download artifacts
       uses: actions/download-artifact@v6
       with:
         path: ${{ inputs.artifacts-directory }}
+
+    - name: Generate Changelog
+      if: inputs.changelog-enabled == 'true'
+      uses: Reloaded-Project/devops-changelog@v1
+      with:
+        auto-checkout: false
+        upload-artifact: false
+        upload-release: false
+        output: ${{ inputs.changelog-output }}
+        config: ${{ inputs.changelog-config }}
+        template: ${{ inputs.changelog-template }}
+        remote: ${{ inputs.changelog-remote }}
+        package: ${{ inputs.changelog-package }}
+        latest-version: ${{ inputs.changelog-latest-version }}
+        unreleased: ${{ inputs.changelog-unreleased }}
+        commit-limit: ${{ inputs.changelog-commit-limit }}
+        backfill-limit: ${{ inputs.changelog-backfill-limit }}
+        commit-url: ${{ inputs.changelog-commit-url }}
+        issue-url: ${{ inputs.changelog-issue-url }}
+        merge-url: ${{ inputs.changelog-merge-url }}
+        compare-url: ${{ inputs.changelog-compare-url }}
+        issue-pattern: ${{ inputs.changelog-issue-pattern }}
+        breaking-pattern: ${{ inputs.changelog-breaking-pattern }}
+        merge-pattern: ${{ inputs.changelog-merge-pattern }}
+        commit-pattern: ${{ inputs.changelog-commit-pattern }}
+        ignore-commit-pattern: ${{ inputs.changelog-ignore-commit-pattern }}
+        tag-pattern: ${{ inputs.changelog-tag-pattern }}
+        tag-prefix: ${{ inputs.changelog-tag-prefix }}
+        starting-version: ${{ inputs.changelog-starting-version }}
+        starting-date: ${{ inputs.changelog-starting-date }}
+        ending-version: ${{ inputs.changelog-ending-version }}
+        sort-commits: ${{ inputs.changelog-sort-commits }}
+        release-summary: ${{ inputs.changelog-release-summary }}
+        unreleased-only: ${{ inputs.changelog-unreleased-only }}
+        hide-empty-releases: ${{ inputs.changelog-hide-empty-releases }}
+        hide-credit: ${{ inputs.changelog-hide-credit }}
+        handlebars-setup: ${{ inputs.changelog-handlebars-setup }}
+        append-git-log: ${{ inputs.changelog-append-git-log }}
+        append-git-tag: ${{ inputs.changelog-append-git-tag }}
+        prepend: ${{ inputs.changelog-prepend }}
+        stdout: ${{ inputs.changelog-stdout }}
+        is-release: ${{ inputs.changelog-is-release }}
+        release-tag: ${{ inputs.changelog-release-tag }}
+        override-starting-version: ${{ inputs.changelog-override-starting-version }}
+
+    - name: Upload Changelog Artifact
+      if: inputs.changelog-enabled == 'true' && inputs.changelog-upload-artifact == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.changelog-artifact-name }}
+        path: ${{ inputs.changelog-output }}
 
     - name: Install Python dependencies
       if: inputs.artifact-groups-file != ''
@@ -109,8 +325,10 @@ runs:
       if: inputs.create-release == 'true'
       uses: softprops/action-gh-release@v2
       with:
+        body_path: ${{ inputs.changelog-enabled == 'true' && inputs.changelog-output || '' }}
         files: |
           ${{ inputs.compressed-artifacts-directory }}/*
+          ${{ inputs.changelog-enabled == 'true' && inputs.changelog-include-in-release == 'true' && inputs.changelog-output || '' }}
 
     - name: Upload to NuGet
       if: inputs.csharp-nuget-api-key != ''
