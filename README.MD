@@ -71,11 +71,11 @@ publish-crate:
 
 ### Compression Parameters
 
-| Input                  | Description                                                      | Required | Default                      |
-| ---------------------- | ---------------------------------------------------------------- | -------- | ---------------------------- |
+| Input                  | Description                                                       | Required | Default                       |
+| ---------------------- | ----------------------------------------------------------------- | -------- | ----------------------------- |
 | `artifact-groups-file` | Path to YAML file for grouping artifact directories into archives | No       | `.github/artifact-groups.yml` |
-| `compression-tool`     | Compression tool to use (zip, 7z)                                | No       | `zip`                        |
-| `compression-args`     | Additional arguments for the compression tool                    | No       | `''`                         |
+| `compression-tool`     | Compression tool to use (zip, 7z)                                 | No       | `zip`                         |
+| `compression-args`     | Additional arguments for the compression tool                     | No       | `''`                          |
 
 #### Artifact Groups Examples
 
