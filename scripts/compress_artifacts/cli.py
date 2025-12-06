@@ -26,14 +26,11 @@ Examples:
   # Use 7z with maximum compression
   %(prog)s --artifacts-dir artifacts --output-dir compressed --tool 7z --args "-mx=9"
 
-  # Group artifacts with YAML config
-  %(prog)s --artifacts-dir artifacts --output-dir compressed --groups '
-    c-library:
-      - c-library-linux-x64
-      - c-library-windows-x64
-    symbols:
-      patterns: "*-symbols"
-  '
+  # Group artifacts using a YAML config file (recommended)
+  %(prog)s --artifacts-dir artifacts --output-dir compressed --groups @artifact-groups.yml
+
+  # Inline YAML config (for simple cases)
+  %(prog)s --artifacts-dir artifacts --output-dir compressed --groups 'c-library: [linux-x64, windows-x64]'
 '''
     )
     
@@ -52,8 +49,8 @@ Examples:
     parser.add_argument(
         '--groups', '-g',
         default='',
-        help="YAML grouping configuration (inline or @filename). "
-             "Supports explicit directory lists or 'patterns:' for glob matching."
+        help="YAML grouping configuration. Use @filename to load from file (recommended), "
+             "or pass inline YAML. Supports explicit directory lists or 'patterns:' for glob matching."
     )
     
     parser.add_argument(
@@ -108,7 +105,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if groups_file.exists():
             groups_yaml = groups_file.read_text()
         else:
-            print(f"Warning: Groups file not found: {groups_file}", file=sys.stderr)
+            # File not found is expected when using default config path
             groups_yaml = ''
     
     groups = parse_artifact_groups(groups_yaml)

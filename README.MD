@@ -71,15 +71,17 @@ publish-crate:
 
 ### Compression Parameters
 
-| Input              | Description                                                      | Required | Default |
-| ------------------ | ---------------------------------------------------------------- | -------- | ------- |
-| `artifact-groups`  | YAML configuration for grouping artifact directories into single archives | No       | `''`    |
-| `compression-tool` | Compression tool to use (zip, 7z)                                | No       | `zip`   |
-| `compression-args` | Additional arguments for the compression tool                    | No       | `''`    |
+| Input                  | Description                                                      | Required | Default                      |
+| ---------------------- | ---------------------------------------------------------------- | -------- | ---------------------------- |
+| `artifact-groups-file` | Path to YAML file for grouping artifact directories into archives | No       | `.github/artifact-groups.yml` |
+| `compression-tool`     | Compression tool to use (zip, 7z)                                | No       | `zip`                        |
+| `compression-args`     | Additional arguments for the compression tool                    | No       | `''`                         |
 
 #### Artifact Groups Examples
 
-The `artifact-groups` input accepts YAML configuration to control how artifact directories are grouped into archives:
+Create a `.github/artifact-groups.yml` file in your repository to configure how artifact directories are grouped into archives. If the file doesn't exist, each artifact directory is compressed individually.
+
+Example `.github/artifact-groups.yml`:
 
 ```yaml
 # Explicit list - name specific directories to group

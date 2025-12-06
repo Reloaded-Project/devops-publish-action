@@ -37,16 +37,23 @@ To debug: set breakpoints in the code, then press `F5` or use the Run and Debug 
 The `compress-artifacts.py` script compresses artifact directories into archives:
 
 ```bash
+# Using a config file (recommended)
 python scripts/compress-artifacts.py \
   --artifacts-dir artifacts \
   --output-dir compressed \
   --tool zip \
+  --groups @artifact-groups.yml
+
+# Using inline YAML (for simple cases)
+python scripts/compress-artifacts.py \
+  --artifacts-dir artifacts \
+  --output-dir compressed \
   --groups 'c-library: [c-library-linux, c-library-windows]'
 ```
 
 Options:
 - `--tool`: `zip` (default) or `7z`
-- `--groups`: YAML config for grouping directories into single archives
+- `--groups`: YAML config for grouping directories (`@filename` to load from file, or inline YAML)
 - `--args`: Extra arguments passed to the compression tool
 
 ### Grouping Configuration
