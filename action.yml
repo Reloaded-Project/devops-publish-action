@@ -29,10 +29,10 @@ inputs:
   # ====================
   # Compression Parameters
   # ====================
-  artifact-groups:
-    description: 'YAML configuration for grouping artifact directories into single archives'
+  artifact-groups-file:
+    description: 'Path to YAML file containing artifact grouping configuration'
     required: false
-    default: ''
+    default: '.github/artifact-groups.yml'
   compression-tool:
     description: 'Compression tool to use (zip, 7z)'
     required: false
@@ -109,7 +109,7 @@ runs:
         }
 
     - name: Install Python dependencies
-      if: inputs.artifact-groups != ''
+      if: inputs.artifact-groups-file != ''
       shell: bash
       run: python3 -m pip install -r "${{ github.action_path }}/scripts/requirements.txt"
 
@@ -121,7 +121,7 @@ runs:
           --output-dir "${{ inputs.compressed-artifacts-directory }}" \
           --tool "${{ inputs.compression-tool }}" \
           --args "${{ inputs.compression-args }}" \
-          --groups "${{ inputs.artifact-groups }}"
+          --groups "@${{ inputs.artifact-groups-file }}"
 
     - name: Create GitHub release
       if: inputs.create-release == 'true'
