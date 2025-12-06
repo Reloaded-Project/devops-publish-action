@@ -364,7 +364,7 @@ runs:
           
           echo "Publishing standalone Rust package at path: $path"
           output=$(cargo publish --token "${{ inputs.rust-crates-io-token }}" --manifest-path "$path/Cargo.toml" ${{ inputs.rust-cargo-publish-params }} 2>&1) || {
-            if echo "$output" | grep -q "already uploaded"; then
+            if echo "$output" | grep -q "already exists"; then
               echo "Crate version already exists, skipping..."
             else
               echo "$output"
@@ -389,7 +389,7 @@ runs:
           
           echo "Publishing workspace crate: $crate"
           output=$(cargo publish --token "${{ inputs.rust-crates-io-token }}" --manifest-path "${{ inputs.rust-cargo-workspace-root }}/Cargo.toml" -p "$crate" ${{ inputs.rust-cargo-publish-params }} 2>&1) || {
-            if echo "$output" | grep -q "already uploaded"; then
+            if echo "$output" | grep -q "already exists"; then
               echo "Crate version already exists, skipping..."
             else
               echo "$output"
