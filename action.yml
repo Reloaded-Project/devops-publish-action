@@ -330,7 +330,7 @@ runs:
 
     - name: Create GitHub release
       if: inputs.create-release == 'true'
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         body_path: ${{ inputs.changelog-enabled == 'true' && inputs.changelog-output || '' }}
         files: |
